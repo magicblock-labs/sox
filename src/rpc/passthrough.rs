@@ -1,4 +1,4 @@
-use crate::responder::ResponderRpc;
+use crate::responder::{response::response_with_context, ResponderRpc};
 use jsonrpsee::{
     core::RegisterMethodError,
     types::{ErrorObjectOwned, Params},
@@ -35,8 +35,9 @@ async fn passthrough_impl<R: DeserializeOwned>(
     method: &str,
     params: Params<'static>,
     rpc: &ResponderRpc,
+    default_value: Option<R>,
 ) -> Result<R, ErrorObjectOwned> {
-    rpc.handle_request(method, params).await
+    rpc.handle_request(method, params, default_value).await
 }
 
 pub fn register_passthrough_methods(
@@ -47,13 +48,24 @@ pub fn register_passthrough_methods(
             module.register_async_method($method, |params, rpc| async move {
                 debug!("{}", $method);
                 trace!("{:#?}", params);
-                passthrough_impl::<$return_type>($method, params, &rpc).await
+                passthrough_impl::<$return_type>($method, params, &rpc, None).await
+            })?;
+        };
+        ($method:literal, $return_type:ty, $default_value:expr) => {
+            module.register_async_method($method, |params, rpc| async move {
+                debug!("{}", $method);
+                trace!("{:#?}", params);
+                passthrough_impl::<$return_type>($method, params, &rpc, Some($default_value)).await
             })?;
         };
     }
 
-    passthrough!("getAccountInfo", RpcResponse<Option<UiAccount>>);
-    passthrough!("getBalance", RpcResponse<u64>);
+    passthrough!(
+        "getAccountInfo",
+        RpcResponse<Option<UiAccount>>,
+        response_with_context(None)
+    );
+    passthrough!("getBalance", RpcResponse<u64>, response_with_context(0));
     passthrough!("getBlock", Option<UiConfirmedBlock>);
     passthrough!(
         "getBlockCommitment",
@@ -77,7 +89,6 @@ pub fn register_passthrough_methods(
     passthrough!("getInflationRate", RpcInflationRate);
     passthrough!("getInflationReward", Vec<Option<RpcInflationReward>>);
     passthrough!("getLargestAccounts", RpcResponse<Vec<RpcAccountBalance>>);
-    // TODO: guide Ephem (ephemeral validator should match the on chain blockhash)
     passthrough!("getLatestBlockhash", RpcResponse<RpcBlockhash>);
     passthrough!("getLeaderSchedule", Option<RpcLeaderSchedule>);
     passthrough!("getMaxRetransmitSlot", Slot);

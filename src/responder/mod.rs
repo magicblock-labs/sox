@@ -1,5 +1,6 @@
 use crate::errors::server_error;
 use crate::errors::ServerErrorCode;
+use crate::rpc::params::RawParams;
 use cluster::RpcCluster;
 use jsonrpsee::{
     core::{client::ClientT, ClientError},
@@ -9,13 +10,11 @@ use jsonrpsee::{
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 mod cluster;
+pub mod response;
 
-use crate::{
-    errors::ResponderRpcResult,
-    rpc::{params::RawParams, passthrough::register_passthrough_methods},
-};
+use crate::{errors::ResponderRpcResult, rpc::passthrough::register_passthrough_methods};
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct ResponderConfig {
     /// The cluster to proxy requests to.
     /// If `None`, the responder will not proxy requests.
@@ -23,6 +22,12 @@ pub struct ResponderConfig {
 }
 
 impl ResponderConfig {
+    pub fn noproxy() -> Self {
+        Self {
+            remote_cluster: None,
+        }
+    }
+
     pub fn development() -> Self {
         Self {
             remote_cluster: Some(RpcCluster::Development),
@@ -67,28 +72,20 @@ impl ResponderRpc {
         &self,
         method: &str,
         params: jsonrpsee::types::Params<'static>,
+        default_value: Option<R>,
     ) -> Result<R, ErrorObjectOwned> {
         let Some(rpc_remote_client) = self.rpc_remote_client.as_ref() else {
-            let no_proxy = NoProxy {
-                value: "Responder is not configured to proxy requests".to_string(),
-            };
-
-            // Serialize NoProxy to JSON and then deserialize as R
-            let json_value = serde_json::to_value(no_proxy).map_err(|e| {
-                server_error(
-                    format!("Failed to serialize no-proxy response: {e:?}"),
+            if let Some(default_value) = default_value {
+                return Ok(default_value);
+            } else {
+                return Err(server_error(
+                    format!(
+                        "Responder is not configured to proxy requests and no default value is known for {}",
+                        method
+                    ),
                     ServerErrorCode::RpcClientError,
-                )
-            })?;
-
-            let result = serde_json::from_value::<R>(json_value).map_err(|e| {
-                server_error(
-                    format!("Failed to deserialize no-proxy response as expected type: {e:?}"),
-                    ServerErrorCode::RpcClientError,
-                )
-            })?;
-
-            return Ok(result);
+                ));
+            }
         };
 
         match rpc_remote_client
@@ -100,7 +97,7 @@ impl ResponderRpc {
                 // Pass RPC JSON errors through directly
                 ClientError::Call(err) => Err(err),
                 _ => Err(server_error(
-                    format!("Failed to forward to on-chain RPC: {err:?}"),
+                    format!("Failed to forward to proxied RPC: {err:?}"),
                     ServerErrorCode::RpcClientError,
                 )),
             },

@@ -9,18 +9,25 @@ mod errors;
 mod responder;
 mod rpc;
 
+fn init_logger() {
+    let _ = env_logger::builder().format_timestamp(None).try_init();
+}
+
 #[tokio::main]
 async fn main() {
-    let config = ResponderConfig::development();
+    init_logger();
+
+    let config = ResponderConfig::noproxy();
     match start_rpc_server(config).await {
-        Ok((url, _handle)) => {
+        Ok((url, handle)) => {
             info!("RPC server started at {}", url);
+            handle.stopped().await;
         }
-        Err(e) => eprintln!("Failed to start RPC server: {}", e),
+        Err(e) => error!("Failed to start RPC server: {}", e),
     }
 }
 
-const DEFAULT_RPC_URL: &str = "http://localhost:8899";
+const DEFAULT_RPC_URL: &str = "127.0.0.1:8899";
 pub async fn start_rpc_server(
     config: ResponderConfig,
 ) -> ResponderRpcResult<(String, ServerHandle)> {
