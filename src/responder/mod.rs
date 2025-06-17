@@ -1,6 +1,13 @@
+use log::*;
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use crate::errors::server_error;
 use crate::errors::ServerErrorCode;
+use crate::mocker::SoxMocker;
 use crate::rpc::params::RawParams;
+use crate::rpc::params::SendTransactionParams;
+use crate::rpc::passthrough::register_mockable_methods;
 use cluster::RpcCluster;
 use jsonrpsee::{
     core::{client::ClientT, ClientError},
@@ -9,6 +16,8 @@ use jsonrpsee::{
     RpcModule,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use solana_sdk::signature::Signature;
+use solana_transaction_status::ConfirmedTransactionStatusWithSignature;
 mod cluster;
 pub mod response;
 
@@ -40,13 +49,20 @@ impl ResponderConfig {
     }
 }
 
-pub struct ResponderRpc {
+#[allow(unused)]
+pub struct ResponderRpc<M: SoxMocker> {
     pub(super) rpc_remote_client: Option<HttpClient>,
+    pub(super) mocker: Arc<M>,
+    tx_results: HashMap<Signature, ConfirmedTransactionStatusWithSignature>,
 }
 
-pub fn create_rpc_module(config: ResponderConfig) -> ResponderRpcResult<RpcModule<ResponderRpc>> {
-    let director = ResponderRpc::try_new(config)?;
-    let mut module = RpcModule::new(director);
+pub fn create_rpc_module<M: SoxMocker>(
+    mocker: Arc<M>,
+    config: ResponderConfig,
+) -> ResponderRpcResult<RpcModule<ResponderRpc<M>>> {
+    let responder = ResponderRpc::try_new(mocker, config)?;
+    let mut module = RpcModule::new(responder);
+    register_mockable_methods(&mut module)?;
     register_passthrough_methods(&mut module)?;
 
     Ok(module)
@@ -57,15 +73,33 @@ struct NoProxy {
     value: String,
 }
 
-impl ResponderRpc {
-    fn try_new(config: ResponderConfig) -> ResponderRpcResult<Self> {
+impl<M: SoxMocker> ResponderRpc<M> {
+    fn try_new(mocker: Arc<M>, config: ResponderConfig) -> ResponderRpcResult<Self> {
         let rpc_remote_client = config
             .remote_cluster
             .as_ref()
             .map(|x| HttpClientBuilder::default().build(x.url()))
             .transpose()?;
 
-        Ok(Self { rpc_remote_client })
+        Ok(Self {
+            rpc_remote_client,
+            mocker,
+            tx_results: HashMap::new(),
+        })
+    }
+
+    pub async fn handle_send_transaction(
+        &self,
+        params: jsonrpsee::types::Params<'static>,
+    ) -> Result<String, ErrorObjectOwned> {
+        // TODO: let mocker handle this
+        // TODO: proxy through if not mocked
+        let send_tx_params: SendTransactionParams = params.parse().unwrap();
+        let encoded_tx = send_tx_params.0;
+        debug!("Received transaction: {}", encoded_tx);
+
+        let signature = Signature::new_unique();
+        Ok(signature.to_string())
     }
 
     pub async fn handle_request<R: DeserializeOwned>(

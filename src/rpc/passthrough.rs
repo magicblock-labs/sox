@@ -1,4 +1,7 @@
-use crate::responder::{response::response_with_context, ResponderRpc};
+use crate::{
+    mocker::SoxMocker,
+    responder::{response::response_with_context, ResponderRpc},
+};
 use jsonrpsee::{
     core::RegisterMethodError,
     types::{ErrorObjectOwned, Params},
@@ -29,33 +32,47 @@ const MAX_LOCKOUT_HISTORY: usize = 31;
 type BlockCommitmentArray = [u64; MAX_LOCKOUT_HISTORY + 1];
 
 // -----------------
+// register_mockable_methods
+// -----------------
+pub fn register_mockable_methods<M: SoxMocker>(
+    module: &mut RpcModule<ResponderRpc<M>>,
+) -> Result<(), RegisterMethodError> {
+    module.register_async_method("sendTransaction", |params, rpc| async move {
+        debug!("sendTransaction {:#?}", params);
+        rpc.handle_send_transaction(params).await
+    })?;
+    Ok(())
+}
+
+// -----------------
 // register_passthrough_methods
 // -----------------
-async fn passthrough_impl<R: DeserializeOwned>(
+async fn passthrough_impl<M: SoxMocker, R: DeserializeOwned>(
     method: &str,
     params: Params<'static>,
-    rpc: &ResponderRpc,
+    rpc: &ResponderRpc<M>,
     default_value: Option<R>,
 ) -> Result<R, ErrorObjectOwned> {
     rpc.handle_request(method, params, default_value).await
 }
 
-pub fn register_passthrough_methods(
-    module: &mut RpcModule<ResponderRpc>,
+pub fn register_passthrough_methods<M: SoxMocker>(
+    module: &mut RpcModule<ResponderRpc<M>>,
 ) -> Result<(), RegisterMethodError> {
     macro_rules! passthrough {
         ($method:literal, $return_type:ty) => {
             module.register_async_method($method, |params, rpc| async move {
                 debug!("{}", $method);
                 trace!("{:#?}", params);
-                passthrough_impl::<$return_type>($method, params, &rpc, None).await
+                passthrough_impl::<M, $return_type>($method, params, &rpc, None).await
             })?;
         };
         ($method:literal, $return_type:ty, $default_value:expr) => {
             module.register_async_method($method, |params, rpc| async move {
                 debug!("{}", $method);
                 trace!("{:#?}", params);
-                passthrough_impl::<$return_type>($method, params, &rpc, Some($default_value)).await
+                passthrough_impl::<M, $return_type>($method, params, &rpc, Some($default_value))
+                    .await
             })?;
         };
     }
