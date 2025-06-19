@@ -1,10 +1,29 @@
 use solana_rpc_client_api::response::RpcSimulateTransactionResult;
 use solana_sdk::transaction::VersionedTransaction;
-use solana_transaction_status::ConfirmedTransactionStatusWithSignature;
+use solana_transaction_status::{
+    ConfirmedTransactionStatusWithSignature, TransactionConfirmationStatus, TransactionStatus,
+};
 
+#[derive(Debug, Clone)]
 pub enum TransactionResult {
     SimulationError(RpcSimulateTransactionResult),
     SignatureStatus(ConfirmedTransactionStatusWithSignature),
+}
+
+impl From<TransactionResult> for Option<TransactionStatus> {
+    fn from(value: TransactionResult) -> Option<TransactionStatus> {
+        use TransactionResult::*;
+        match value {
+            SimulationError(_) => None,
+            SignatureStatus(status) => Some(TransactionStatus {
+                slot: status.slot,
+                confirmations: None,
+                status: Ok(()),
+                err: status.err,
+                confirmation_status: Some(TransactionConfirmationStatus::Finalized),
+            }),
+        }
+    }
 }
 
 pub trait SoxMocker: Send + Sync + 'static {

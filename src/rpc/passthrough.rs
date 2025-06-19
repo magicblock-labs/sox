@@ -22,7 +22,7 @@ use solana_sdk::{
     epoch_info::EpochInfo,
     epoch_schedule::EpochSchedule,
 };
-use solana_transaction_status::{TransactionStatus, UiConfirmedBlock};
+use solana_transaction_status::UiConfirmedBlock;
 
 // -----------------
 // Solana Types
@@ -31,22 +31,6 @@ use solana_transaction_status::{TransactionStatus, UiConfirmedBlock};
 const MAX_LOCKOUT_HISTORY: usize = 31;
 type BlockCommitmentArray = [u64; MAX_LOCKOUT_HISTORY + 1];
 
-// -----------------
-// register_mockable_methods
-// -----------------
-pub fn register_mockable_methods<M: SoxMocker>(
-    module: &mut RpcModule<ResponderRpc<M>>,
-) -> Result<(), RegisterMethodError> {
-    module.register_async_method("sendTransaction", |params, rpc| async move {
-        debug!("sendTransaction {:#?}", params);
-        rpc.handle_send_transaction(params).await
-    })?;
-    Ok(())
-}
-
-// -----------------
-// register_passthrough_methods
-// -----------------
 async fn passthrough_impl<M: SoxMocker, R: DeserializeOwned>(
     method: &str,
     params: Params<'static>,
@@ -115,10 +99,6 @@ pub fn register_passthrough_methods<M: SoxMocker>(
     passthrough!("getProgramAccounts", OptionalContext<Vec<RpcKeyedAccount>>);
     passthrough!("getRecentPerformanceSamples", Vec<RpcPerfSample>);
     passthrough!("getRecentPrioritizationFees", Vec<RpcPrioritizationFee>);
-    passthrough!(
-        "getSignatureStatuses",
-        RpcResponse<Vec<Option<TransactionStatus>>>
-    );
     passthrough!(
         "getSignaturesForAddress",
         Vec<RpcConfirmedTransactionStatusWithSignature>

@@ -3,7 +3,7 @@ use jsonrpsee::{
     types::Params,
 };
 use serde::{Deserialize, Serialize};
-use solana_rpc_client_api::config::RpcSendTransactionConfig;
+use solana_rpc_client_api::config::{RpcSendTransactionConfig, RpcSignatureStatusConfig};
 
 // -----------------
 // RawParams
@@ -37,3 +37,12 @@ impl ToRpcParams for SendTransactionParams {
         Ok(Some(raw_value))
     }
 }
+
+// -----------------
+// GetSignatureStatusesParams
+// -----------------
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GetSignatureStatusesParams(
+    pub Vec<String>,
+    #[serde(default)] pub Option<RpcSignatureStatusConfig>,
+);

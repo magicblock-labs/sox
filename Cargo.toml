@@ -4,11 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+base64 = "0.21.7"
+bincode = "1.3.3"
+bs58 = "0.4.0"
 jsonrpsee = { version = "0.22.5", features = [
   "http-client",
   "macros",
   "server",
 ] }
+jsonrpc-core = "18.0.0"
 log = "0.4.27"
 reqwest = { version = "0.11", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
