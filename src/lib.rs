@@ -13,13 +13,14 @@ pub mod mocker;
 mod responder;
 mod rpc;
 
-const DEFAULT_RPC_URL: &str = "127.0.0.1:8899";
+const DEFAULT_RPC_PORT: u16 = 8899;
 pub async fn start_rpc_server<M: SoxMocker>(
     mocker: Arc<M>,
     config: ResponderConfig,
+    port: Option<u16>,
 ) -> ResponderRpcResult<(String, ServerHandle)> {
-    let url = DEFAULT_RPC_URL;
-
+    let port = port.unwrap_or(DEFAULT_RPC_PORT);
+    let url = format!("127.0.0.1:{port}");
     let server = Server::builder()
         .http_only()
         .build(url.parse::<SocketAddr>().unwrap())

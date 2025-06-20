@@ -16,7 +16,9 @@ pub async fn start<M: SoxMocker>(mocker: Arc<M>) -> ResponderRpcResult<(String, 
     init_logger();
 
     let config = ResponderConfig::noproxy();
-    match start_rpc_server(mocker, config).await {
+    // random u16 port
+    let port = rand::random::<u16>() % 10000 + 20000; // Port range 20000-29999
+    match start_rpc_server(mocker, config, Some(port)).await {
         Ok((url, handle)) => {
             info!("RPC server started at {}", url);
             Ok((url, handle))

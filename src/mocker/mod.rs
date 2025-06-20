@@ -1,5 +1,8 @@
 use solana_rpc_client_api::response::RpcSimulateTransactionResult;
-use solana_sdk::{signature::Signature, transaction::VersionedTransaction};
+use solana_sdk::{
+    signature::Signature,
+    transaction::{TransactionError, VersionedTransaction},
+};
 use solana_transaction_status::{
     ConfirmedTransactionStatusWithSignature, TransactionConfirmationStatus, TransactionStatus,
 };
@@ -20,6 +23,16 @@ impl TransactionResult {
             block_time: None,
         })
     }
+
+    pub fn signature_status_error(signature: Signature, err: TransactionError) -> Self {
+        TransactionResult::SignatureStatus(ConfirmedTransactionStatusWithSignature {
+            signature,
+            slot: 0,
+            err: Some(err),
+            memo: None,
+            block_time: None,
+        })
+    }
 }
 
 impl From<TransactionResult> for Option<TransactionStatus> {
@@ -30,7 +43,11 @@ impl From<TransactionResult> for Option<TransactionStatus> {
             SignatureStatus(status) => Some(TransactionStatus {
                 slot: status.slot,
                 confirmations: None,
-                status: Ok(()),
+                status: if status.err.is_some() {
+                    Err(status.err.clone().unwrap())
+                } else {
+                    Ok(())
+                },
                 err: status.err,
                 confirmation_status: Some(TransactionConfirmationStatus::Finalized),
             }),
