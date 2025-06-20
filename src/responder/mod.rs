@@ -152,7 +152,7 @@ impl<M: SoxMocker> ResponderRpc<M> {
     ) -> Result<Response<Vec<Option<TransactionStatus>>>, ErrorObjectOwned> {
         let get_signature_statuses_params: GetSignatureStatusesParams = params.parse().unwrap();
         debug!(
-            "handle_get_signature_statuses: {:#?}",
+            "handle_get_signature_statuses: {:?}",
             get_signature_statuses_params
         );
         // TODO: try to get missing ones from remote cluster
@@ -170,7 +170,7 @@ impl<M: SoxMocker> ResponderRpc<M> {
                     .and_then(|status| Option::<TransactionStatus>::from(status.clone()))
             })
             .collect();
-        debug!("Returning signature statuses: {:#?}", statuses);
+        debug!("Returning signature statuses: {:?}", statuses);
         Ok(response_with_context(statuses))
     }
 

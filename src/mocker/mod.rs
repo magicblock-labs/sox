@@ -1,13 +1,25 @@
 use solana_rpc_client_api::response::RpcSimulateTransactionResult;
-use solana_sdk::transaction::VersionedTransaction;
+use solana_sdk::{signature::Signature, transaction::VersionedTransaction};
 use solana_transaction_status::{
     ConfirmedTransactionStatusWithSignature, TransactionConfirmationStatus, TransactionStatus,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionResult {
     SimulationError(RpcSimulateTransactionResult),
     SignatureStatus(ConfirmedTransactionStatusWithSignature),
+}
+
+impl TransactionResult {
+    pub fn signature_status_success(signature: Signature) -> Self {
+        TransactionResult::SignatureStatus(ConfirmedTransactionStatusWithSignature {
+            signature,
+            slot: 0,
+            err: None,
+            memo: None,
+            block_time: None,
+        })
+    }
 }
 
 impl From<TransactionResult> for Option<TransactionStatus> {
