@@ -1,6 +1,6 @@
-use solana_account_decoder::UiAccount;
 use solana_rpc_client_api::config::RpcAccountInfoConfig;
 use solana_rpc_client_api::response::RpcSimulateTransactionResult;
+use solana_sdk::account::Account;
 use solana_sdk::{
     signature::Signature,
     transaction::{TransactionError, VersionedTransaction},
@@ -76,7 +76,7 @@ pub trait SoxMocker: Send + Sync + 'static {
         &self,
         _pubkey: &str,
         _config: Option<RpcAccountInfoConfig>,
-    ) -> Option<Option<UiAccount>> {
+    ) -> Option<Option<Account>> {
         // By default we pass the request to the proxied validator
         None
     }
