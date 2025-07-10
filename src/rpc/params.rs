@@ -71,3 +71,12 @@ pub struct GetAccountInfoParams(
     pub String,
     #[serde(default)] pub Option<RpcAccountInfoConfig>,
 );
+
+// -----------------
+// GetMultipleAccountsParams
+// -----------------
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GetMultipleAccountsParams(
+    pub Vec<String>,
+    #[serde(default)] pub Option<RpcAccountInfoConfig>,
+);

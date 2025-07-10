@@ -44,6 +44,7 @@ fn create_account_tx() -> VersionedTransaction {
         .unwrap()
 }
 
+#[allow(dead_code)]
 fn transfer_tx() -> (Pubkey, VersionedTransaction) {
     let auth = Keypair::new();
     let recipient = Keypair::new();
@@ -216,6 +217,7 @@ async fn test_two_tx_failure() {
 // Mixed Success/Failure/Drop Mocks
 // -----------------
 // #[tokio::test]
+#[allow(dead_code)]
 async fn test_failing_for_specific_payer() {
     struct FailForSpecificPayerMock {
         payer: Pubkey,

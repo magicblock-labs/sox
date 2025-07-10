@@ -22,5 +22,9 @@ pub fn register_mockable_methods<M: SoxMocker>(
         debug!("getAccountInfo {:?}", params);
         rpc.handle_get_account_info(params).await
     })?;
+    module.register_async_method("getMultipleAccounts", |params, rpc| async move {
+        debug!("getMultipleAccounts {:?}", params);
+        rpc.handle_get_multiple_accounts(params).await
+    })?;
     Ok(())
 }

@@ -9,7 +9,7 @@ use jsonrpsee::{
 };
 use log::*;
 use serde::de::DeserializeOwned;
-use solana_account_decoder::{parse_token::UiTokenAmount, UiAccount};
+use solana_account_decoder::parse_token::UiTokenAmount;
 use solana_rpc_client_api::response::{
     OptionalContext, Response as RpcResponse, RpcAccountBalance, RpcBlockCommitment,
     RpcBlockProduction, RpcBlockhash, RpcConfirmedTransactionStatusWithSignature, RpcContactInfo,
@@ -90,7 +90,6 @@ pub fn register_passthrough_methods<M: SoxMocker>(
     passthrough!("getMaxRetransmitSlot", Slot);
     passthrough!("getMaxShredInsertSlot", Slot);
     passthrough!("getMinimumBalanceForRentExemption", u64);
-    passthrough!("getMultipleAccounts", RpcResponse<Vec<Option<UiAccount>>>);
     passthrough!("getProgramAccounts", OptionalContext<Vec<RpcKeyedAccount>>);
     passthrough!("getRecentPerformanceSamples", Vec<RpcPerfSample>);
     passthrough!("getRecentPrioritizationFees", Vec<RpcPrioritizationFee>);

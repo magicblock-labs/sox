@@ -1,12 +1,15 @@
 use crate::mocker::TransactionResult;
 use crate::rpc::params::{
-    GetAccountInfoParams, GetSignatureStatusesParams, IsBlockhashValidParams,
+    GetAccountInfoParams, GetMultipleAccountsParams, GetSignatureStatusesParams,
+    IsBlockhashValidParams,
 };
 use convert::into_account_info;
 use log::*;
 use response::response_with_context;
 use solana_account_decoder::UiAccount;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_rpc_client_api::response::Response;
+use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
 use solana_transaction_status::TransactionStatus;
 use solana_transaction_status::UiTransactionEncoding;
@@ -66,7 +69,8 @@ impl ResponderConfig {
 
 #[allow(unused)]
 pub struct ResponderRpc<M: SoxMocker> {
-    pub(super) rpc_remote_client: Option<HttpClient>,
+    pub(super) rpc_http_client: Option<HttpClient>,
+    rpc_client: Option<RpcClient>,
     pub(super) mocker: Arc<M>,
     mocked_tx_results: Mutex<HashMap<Signature, TransactionResult>>,
     tx_results: HashMap<Signature, ConfirmedTransactionStatusWithSignature>,
@@ -91,14 +95,20 @@ struct NoProxy {
 
 impl<M: SoxMocker> ResponderRpc<M> {
     fn try_new(mocker: Arc<M>, config: ResponderConfig) -> ResponderRpcResult<Self> {
-        let rpc_remote_client = config
+        let rpc_http_client = config
             .remote_cluster
             .as_ref()
             .map(|x| HttpClientBuilder::default().build(x.url()))
             .transpose()?;
 
+        let rpc_client = config
+            .remote_cluster
+            .as_ref()
+            .map(|x| RpcClient::new(x.url().to_string()));
+
         Ok(Self {
-            rpc_remote_client,
+            rpc_http_client,
+            rpc_client,
             mocker,
             mocked_tx_results: HashMap::new().into(),
             tx_results: HashMap::new(),
@@ -220,13 +230,93 @@ impl<M: SoxMocker> ResponderRpc<M> {
         }
     }
 
+    pub async fn handle_get_multiple_accounts(
+        &self,
+        params: jsonrpsee::types::Params<'static>,
+    ) -> Result<Response<Vec<Option<UiAccount>>>, ErrorObjectOwned> {
+        let get_multiple_accounts_params: GetMultipleAccountsParams = params.parse().unwrap();
+        let pubkeys = get_multiple_accounts_params.0;
+        let config = get_multiple_accounts_params.1;
+
+        let mut mocked_accounts: Vec<Option<UiAccount>> = Vec::with_capacity(pubkeys.len());
+        let mut missing_pubkeys: HashMap<Pubkey, usize> = HashMap::new();
+
+        // Try to get each account from the mocker
+        for (i, pubkey) in pubkeys.iter().enumerate() {
+            match self.mocker.get_account_info(pubkey, config.clone()) {
+                Some(account_opt) => {
+                    // Account is handled by the mocker (either exists or doesn't)
+                    let ui_account_opt = account_opt.map(into_account_info);
+                    mocked_accounts.push(ui_account_opt);
+                }
+                None => {
+                    // Account is not handled by the mocker, need to get from proxy
+                    let pubkey = match Pubkey::from_str(pubkey) {
+                        Ok(pubkey) => pubkey,
+                        Err(err) => {
+                            debug!("Invalid pubkey format: {}: {:?}", pubkey, err);
+                            return Err(server_error(
+                                format!("Invalid pubkey format: {}", pubkey),
+                                ServerErrorCode::RpcClientError,
+                            ));
+                        }
+                    };
+                    missing_pubkeys.insert(pubkey, i);
+                    // Add a placeholder that will be replaced with the proxy result
+                    mocked_accounts.push(None);
+                }
+            }
+        }
+
+        if missing_pubkeys.is_empty() {
+            // No missing accounts, return the mocked accounts directly
+            debug!("All accounts found in mocker, returning mocked accounts");
+            return Ok(response_with_context(mocked_accounts));
+        }
+
+        if let Some(rpc_client) = self.rpc_client.as_ref() {
+            debug!(
+                "Proxying getMultipleAccounts for {} accounts: {:?}",
+                pubkeys.len(),
+                pubkeys
+            );
+            let accs = match rpc_client
+                .get_multiple_accounts(&missing_pubkeys.keys().cloned().collect::<Vec<_>>())
+                .await
+            {
+                Ok(accs) => accs,
+                Err(err) => {
+                    debug!("Error getting accounts from proxy: {:?}", err);
+                    return Err(server_error(
+                        format!("Failed to get accounts from proxy: {err}"),
+                        ServerErrorCode::RpcClientError,
+                    ));
+                }
+            };
+            let indexes = missing_pubkeys.values().cloned().collect::<Vec<_>>();
+            for (acc, idx) in accs.into_iter().zip(indexes.iter()) {
+                if let Some(account) = acc {
+                    mocked_accounts[*idx] = Some(into_account_info(account));
+                } else {
+                    // If the account is None, it means it doesn't exist
+                    mocked_accounts[*idx] = None;
+                }
+            }
+        } else {
+            debug!(
+                "No proxy configured, returning as is with unmocked accounts marked as not found"
+            );
+        }
+        Ok(response_with_context(mocked_accounts))
+    }
+
     pub async fn handle_request<R: DeserializeOwned>(
         &self,
         method: &str,
         params: jsonrpsee::types::Params<'static>,
         default_value: Option<R>,
     ) -> Result<R, ErrorObjectOwned> {
-        let Some(rpc_remote_client) = self.rpc_remote_client.as_ref() else {
+        let Some(rpc_remote_client) = self.rpc_http_client.as_ref() else {
             if let Some(default_value) = default_value {
                 return Ok(default_value);
             } else {
