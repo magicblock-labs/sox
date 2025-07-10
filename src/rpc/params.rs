@@ -13,7 +13,9 @@ use solana_rpc_client_api::config::{
 pub struct RawParams(pub Params<'static>);
 
 impl ToRpcParams for RawParams {
-    fn to_rpc_params(self) -> Result<Option<Box<JsonRawValue>>, serde_json::Error> {
+    fn to_rpc_params(
+        self,
+    ) -> Result<Option<Box<JsonRawValue>>, serde_json::Error> {
         match self.0.as_str() {
             Some(s) => {
                 let raw_value = JsonRawValue::from_string(s.to_string())?;
@@ -34,8 +36,11 @@ pub struct SendTransactionParams(
 );
 
 impl ToRpcParams for SendTransactionParams {
-    fn to_rpc_params(self) -> Result<Option<Box<JsonRawValue>>, serde_json::Error> {
-        let raw_value = JsonRawValue::from_string(serde_json::to_string(&self)?)?;
+    fn to_rpc_params(
+        self,
+    ) -> Result<Option<Box<JsonRawValue>>, serde_json::Error> {
+        let raw_value =
+            JsonRawValue::from_string(serde_json::to_string(&self)?)?;
         Ok(Some(raw_value))
     }
 }

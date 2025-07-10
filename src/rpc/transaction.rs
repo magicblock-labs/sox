@@ -28,9 +28,9 @@ where
                     PACKET_DATA_SIZE,
                 )));
             }
-            bs58::decode(encoded)
-                .into_vec()
-                .map_err(|e| Error::invalid_params(format!("invalid base58 encoding: {e:?}")))?
+            bs58::decode(encoded).into_vec().map_err(|e| {
+                Error::invalid_params(format!("invalid base58 encoding: {e:?}"))
+            })?
         }
         TransactionBinaryEncoding::Base64 => {
             if encoded.len() > MAX_BASE64_SIZE {
@@ -42,9 +42,9 @@ where
                     PACKET_DATA_SIZE,
                 )));
             }
-            BASE64_STANDARD
-                .decode(encoded)
-                .map_err(|e| Error::invalid_params(format!("invalid base64 encoding: {e:?}")))?
+            BASE64_STANDARD.decode(encoded).map_err(|e| {
+                Error::invalid_params(format!("invalid base64 encoding: {e:?}"))
+            })?
         }
     };
     if wire_output.len() > PACKET_DATA_SIZE {

@@ -1,45 +1,51 @@
-use crate::mocker::TransactionResult;
-use crate::rpc::params::{
-    GetAccountInfoParams, GetLatestBlockhashParams, GetMultipleAccountsParams, GetSignatureStatusesParams,
-    IsBlockhashValidParams,
+use std::{
+    collections::HashMap,
+    str::FromStr,
+    sync::{Arc, Mutex},
 };
-use convert::into_account_info;
-use log::*;
-use response::response_with_context;
-use solana_account_decoder::UiAccount;
-use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use solana_rpc_client_api::response::{Response, RpcBlockhash};
-use solana_sdk::pubkey::Pubkey;
-use solana_sdk::transaction::VersionedTransaction;
-use solana_transaction_status::TransactionStatus;
-use solana_transaction_status::UiTransactionEncoding;
-use std::collections::HashMap;
-use std::str::FromStr;
-use std::sync::Arc;
-use std::sync::Mutex;
 
-use crate::errors::server_error;
-use crate::errors::ServerErrorCode;
-use crate::mocker::SoxMocker;
-use crate::rpc::mockables::register_mockable_methods;
-use crate::rpc::params::RawParams;
-use crate::rpc::params::SendTransactionParams;
-use crate::rpc::transaction::decode_and_deserialize;
 use cluster::RpcCluster;
+use convert::into_account_info;
 use jsonrpsee::{
     core::{client::ClientT, ClientError},
     http_client::{HttpClient, HttpClientBuilder},
     types::ErrorObjectOwned,
     RpcModule,
 };
+use log::*;
+use response::response_with_context;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use solana_sdk::signature::Signature;
-use solana_transaction_status::ConfirmedTransactionStatusWithSignature;
+use solana_account_decoder::UiAccount;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
+use solana_rpc_client_api::response::{Response, RpcBlockhash};
+use solana_sdk::{
+    pubkey::Pubkey, signature::Signature, transaction::VersionedTransaction,
+};
+use solana_transaction_status::{
+    ConfirmedTransactionStatusWithSignature, TransactionStatus,
+    UiTransactionEncoding,
+};
+
+use crate::{
+    errors::{server_error, ServerErrorCode},
+    mocker::{SoxMocker, TransactionResult},
+    rpc::{
+        mockables::register_mockable_methods,
+        params::{
+            GetAccountInfoParams, GetLatestBlockhashParams,
+            GetMultipleAccountsParams, GetSignatureStatusesParams,
+            IsBlockhashValidParams, RawParams, SendTransactionParams,
+        },
+        transaction::decode_and_deserialize,
+    },
+};
 mod cluster;
 mod convert;
 pub mod response;
 
-use crate::{errors::ResponderRpcResult, rpc::passthrough::register_passthrough_methods};
+use crate::{
+    errors::ResponderRpcResult, rpc::passthrough::register_passthrough_methods,
+};
 
 #[derive(Debug, Clone)]
 pub struct ResponderConfig {
@@ -94,7 +100,10 @@ struct NoProxy {
 }
 
 impl<M: SoxMocker> ResponderRpc<M> {
-    fn try_new(mocker: Arc<M>, config: ResponderConfig) -> ResponderRpcResult<Self> {
+    fn try_new(
+        mocker: Arc<M>,
+        config: ResponderConfig,
+    ) -> ResponderRpcResult<Self> {
         let rpc_http_client = config
             .remote_cluster
             .as_ref()
@@ -125,22 +134,24 @@ impl<M: SoxMocker> ResponderRpc<M> {
         let config = send_tx_params.1.unwrap_or_default();
 
         debug!("Received transaction: {}, {:?}", encoded_tx, config);
-        let tx_encoding = config.encoding.unwrap_or(UiTransactionEncoding::Base58);
+        let tx_encoding =
+            config.encoding.unwrap_or(UiTransactionEncoding::Base58);
         let binary_encoding = tx_encoding.into_binary_encoding().ok_or_else(|| {
             server_error(
                 format!("unsupported encoding: {tx_encoding}. Supported encodings: base58, base64"),
                 ServerErrorCode::RpcClientError,
             )
         })?;
-        let (_, decoded_tx) =
-            decode_and_deserialize::<VersionedTransaction>(encoded_tx, binary_encoding).map_err(
-                |err| {
-                    server_error(
-                        format!("Failed to decode transaction: {err}"),
-                        ServerErrorCode::RpcClientError,
-                    )
-                },
-            )?;
+        let (_, decoded_tx) = decode_and_deserialize::<VersionedTransaction>(
+            encoded_tx,
+            binary_encoding,
+        )
+        .map_err(|err| {
+            server_error(
+                format!("Failed to decode transaction: {err}"),
+                ServerErrorCode::RpcClientError,
+            )
+        })?;
         debug!("Decoded transaction: {:?}", decoded_tx);
 
         let signature = *decoded_tx.signatures.first().ok_or_else(|| {
@@ -149,7 +160,8 @@ impl<M: SoxMocker> ResponderRpc<M> {
                 ServerErrorCode::RpcClientError,
             )
         })?;
-        if let Some(result) = self.mocker.handle_transaction(decoded_tx.clone()) {
+        if let Some(result) = self.mocker.handle_transaction(decoded_tx.clone())
+        {
             debug!("Mocked transaction result: {:?}", result);
 
             let sig_str = signature.to_string();
@@ -169,8 +181,10 @@ impl<M: SoxMocker> ResponderRpc<M> {
     pub async fn handle_get_signature_statuses(
         &self,
         params: jsonrpsee::types::Params<'static>,
-    ) -> Result<Response<Vec<Option<TransactionStatus>>>, ErrorObjectOwned> {
-        let get_signature_statuses_params: GetSignatureStatusesParams = params.parse().unwrap();
+    ) -> Result<Response<Vec<Option<TransactionStatus>>>, ErrorObjectOwned>
+    {
+        let get_signature_statuses_params: GetSignatureStatusesParams =
+            params.parse().unwrap();
         debug!(
             "handle_get_signature_statuses: {:?}",
             get_signature_statuses_params
@@ -184,10 +198,11 @@ impl<M: SoxMocker> ResponderRpc<M> {
         let statuses: Vec<Option<TransactionStatus>> = signatures
             .into_iter()
             .map(|sig| {
-                let sig = Signature::from_str(&sig).expect("Invalid signature format");
-                mocked_tx_results
-                    .get(&sig)
-                    .and_then(|status| Option::<TransactionStatus>::from(status.clone()))
+                let sig = Signature::from_str(&sig)
+                    .expect("Invalid signature format");
+                mocked_tx_results.get(&sig).and_then(|status| {
+                    Option::<TransactionStatus>::from(status.clone())
+                })
             })
             .collect();
         debug!("Returning signature statuses: {:?}", statuses);
@@ -198,7 +213,8 @@ impl<M: SoxMocker> ResponderRpc<M> {
         &self,
         params: jsonrpsee::types::Params<'static>,
     ) -> Result<Response<bool>, ErrorObjectOwned> {
-        let is_blockhash_valid_params: IsBlockhashValidParams = params.parse().unwrap();
+        let is_blockhash_valid_params: IsBlockhashValidParams =
+            params.parse().unwrap();
         let blockhash = is_blockhash_valid_params.0;
         if let Some(is_valid) = self.mocker.is_blockhash_valid(&blockhash) {
             debug!("Mocked isBlockhashValid result: {:?}", is_valid);
@@ -212,7 +228,8 @@ impl<M: SoxMocker> ResponderRpc<M> {
         &self,
         params: jsonrpsee::types::Params<'static>,
     ) -> Result<Response<Option<UiAccount>>, ErrorObjectOwned> {
-        let get_account_info_params: GetAccountInfoParams = params.parse().unwrap();
+        let get_account_info_params: GetAccountInfoParams =
+            params.parse().unwrap();
         let pubkey = get_account_info_params.0;
         let config = get_account_info_params.1;
 
@@ -234,11 +251,13 @@ impl<M: SoxMocker> ResponderRpc<M> {
         &self,
         params: jsonrpsee::types::Params<'static>,
     ) -> Result<Response<Vec<Option<UiAccount>>>, ErrorObjectOwned> {
-        let get_multiple_accounts_params: GetMultipleAccountsParams = params.parse().unwrap();
+        let get_multiple_accounts_params: GetMultipleAccountsParams =
+            params.parse().unwrap();
         let pubkeys = get_multiple_accounts_params.0;
         let config = get_multiple_accounts_params.1;
 
-        let mut mocked_accounts: Vec<Option<UiAccount>> = Vec::with_capacity(pubkeys.len());
+        let mut mocked_accounts: Vec<Option<UiAccount>> =
+            Vec::with_capacity(pubkeys.len());
         let mut missing_pubkeys: HashMap<Pubkey, usize> = HashMap::new();
 
         // Try to get each account from the mocker
@@ -254,7 +273,10 @@ impl<M: SoxMocker> ResponderRpc<M> {
                     let pubkey = match Pubkey::from_str(pubkey) {
                         Ok(pubkey) => pubkey,
                         Err(err) => {
-                            debug!("Invalid pubkey format: {}: {:?}", pubkey, err);
+                            debug!(
+                                "Invalid pubkey format: {}: {:?}",
+                                pubkey, err
+                            );
                             return Err(server_error(
                                 format!("Invalid pubkey format: {}", pubkey),
                                 ServerErrorCode::RpcClientError,
@@ -281,7 +303,9 @@ impl<M: SoxMocker> ResponderRpc<M> {
                 pubkeys
             );
             let accs = match rpc_client
-                .get_multiple_accounts(&missing_pubkeys.keys().cloned().collect::<Vec<_>>())
+                .get_multiple_accounts(
+                    &missing_pubkeys.keys().cloned().collect::<Vec<_>>(),
+                )
                 .await
             {
                 Ok(accs) => accs,
@@ -314,13 +338,16 @@ impl<M: SoxMocker> ResponderRpc<M> {
         &self,
         params: jsonrpsee::types::Params<'static>,
     ) -> Result<Response<RpcBlockhash>, ErrorObjectOwned> {
-        let _get_latest_blockhash_params: GetLatestBlockhashParams = params.parse().unwrap_or_else(|_| GetLatestBlockhashParams(None));
-        
+        let _get_latest_blockhash_params: GetLatestBlockhashParams = params
+            .parse()
+            .unwrap_or_else(|_| GetLatestBlockhashParams(None));
+
         if let Some(blockhash) = self.mocker.get_latest_blockhash() {
             debug!("Mocked getLatestBlockhash result: {:?}", blockhash);
             Ok(response_with_context(blockhash))
         } else {
-            self.handle_request("getLatestBlockhash", params, None).await
+            self.handle_request("getLatestBlockhash", params, None)
+                .await
         }
     }
 

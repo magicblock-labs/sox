@@ -1,11 +1,10 @@
 use std::{net::SocketAddr, sync::Arc};
 
+pub use errors::ResponderRpcResult;
 use jsonrpsee::server::Server;
+pub use jsonrpsee::server::ServerHandle;
 use mocker::SoxMocker;
 use responder::create_rpc_module;
-
-pub use errors::ResponderRpcResult;
-pub use jsonrpsee::server::ServerHandle;
 pub use responder::ResponderConfig;
 
 mod errors;

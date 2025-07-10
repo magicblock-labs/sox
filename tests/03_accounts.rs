@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use solana_rpc_client_api::config::RpcAccountInfoConfig;
 use solana_sdk::{
-    account::Account, commitment_config::CommitmentConfig, pubkey::Pubkey, system_program,
+    account::Account, commitment_config::CommitmentConfig, pubkey::Pubkey,
+    system_program,
 };
 use sox::mocker::{SoxMocker, SoxPassThrough};
 
@@ -63,7 +64,10 @@ async fn test_get_account_info_mocked_and_non_existing() {
 
     // 1. Test existing account
     let account = rpc_client
-        .get_account_with_commitment(&existing_pubkey, CommitmentConfig::processed())
+        .get_account_with_commitment(
+            &existing_pubkey,
+            CommitmentConfig::processed(),
+        )
         .await
         .unwrap()
         .value
@@ -73,7 +77,10 @@ async fn test_get_account_info_mocked_and_non_existing() {
 
     // 2. Test non-existing account
     let account = rpc_client
-        .get_account_with_commitment(&non_existing_pubkey, CommitmentConfig::processed())
+        .get_account_with_commitment(
+            &non_existing_pubkey,
+            CommitmentConfig::processed(),
+        )
         .await
         .unwrap()
         .value;
@@ -134,7 +141,10 @@ async fn test_get_multiple_accounts_mixed() {
     // Test a mix of existing and non-existing accounts
     let pubkeys = vec![existing_pubkey1, non_existing_pubkey, existing_pubkey2];
     let accounts = rpc_client
-        .get_multiple_accounts_with_commitment(&pubkeys, CommitmentConfig::processed())
+        .get_multiple_accounts_with_commitment(
+            &pubkeys,
+            CommitmentConfig::processed(),
+        )
         .await
         .unwrap()
         .value;
@@ -162,9 +172,10 @@ async fn test_get_multiple_accounts_mixed() {
 #[tokio::test]
 async fn test_get_account_info_fallback_to_proxy() {
     let mocker = Arc::new(SoxPassThrough);
-    let (url, handle) = utils::start_with_config(mocker, sox::ResponderConfig::development())
-        .await
-        .unwrap();
+    let (url, handle) =
+        utils::start_with_config(mocker, sox::ResponderConfig::development())
+            .await
+            .unwrap();
     let rpc_client = utils::create_rpc_client(&url);
 
     // Use a well-known system program account that should exist on development
@@ -172,7 +183,10 @@ async fn test_get_account_info_fallback_to_proxy() {
 
     // This should work by falling back to the remote proxy
     let result = rpc_client
-        .get_account_with_commitment(&system_program_pubkey, CommitmentConfig::processed())
+        .get_account_with_commitment(
+            &system_program_pubkey,
+            CommitmentConfig::processed(),
+        )
         .await;
 
     // Should succeed (not panic or return an error about no proxy)

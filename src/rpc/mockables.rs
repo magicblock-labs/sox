@@ -6,29 +6,47 @@ use crate::{mocker::SoxMocker, responder::ResponderRpc};
 pub fn register_mockable_methods<M: SoxMocker>(
     module: &mut RpcModule<ResponderRpc<M>>,
 ) -> Result<(), RegisterMethodError> {
-    module.register_async_method("sendTransaction", |params, rpc| async move {
-        debug!("sendTransaction {:?}", params);
-        rpc.handle_send_transaction(params).await
-    })?;
-    module.register_async_method("getSignatureStatuses", |params, rpc| async move {
-        debug!("getSignatureStatuses {:?}", params);
-        rpc.handle_get_signature_statuses(params).await
-    })?;
-    module.register_async_method("isBlockhashValid", |params, rpc| async move {
-        debug!("isBlockhashValid {:?}", params);
-        rpc.handle_is_blockhash_valid(params).await
-    })?;
-    module.register_async_method("getAccountInfo", |params, rpc| async move {
-        debug!("getAccountInfo {:?}", params);
-        rpc.handle_get_account_info(params).await
-    })?;
-    module.register_async_method("getMultipleAccounts", |params, rpc| async move {
-        debug!("getMultipleAccounts {:?}", params);
-        rpc.handle_get_multiple_accounts(params).await
-    })?;
-    module.register_async_method("getLatestBlockhash", |params, rpc| async move {
-        debug!("getLatestBlockhash {:?}", params);
-        rpc.handle_get_latest_blockhash(params).await
-    })?;
+    module.register_async_method(
+        "sendTransaction",
+        |params, rpc| async move {
+            debug!("sendTransaction {:?}", params);
+            rpc.handle_send_transaction(params).await
+        },
+    )?;
+    module.register_async_method(
+        "getSignatureStatuses",
+        |params, rpc| async move {
+            debug!("getSignatureStatuses {:?}", params);
+            rpc.handle_get_signature_statuses(params).await
+        },
+    )?;
+    module.register_async_method(
+        "isBlockhashValid",
+        |params, rpc| async move {
+            debug!("isBlockhashValid {:?}", params);
+            rpc.handle_is_blockhash_valid(params).await
+        },
+    )?;
+    module.register_async_method(
+        "getAccountInfo",
+        |params, rpc| async move {
+            debug!("getAccountInfo {:?}", params);
+            rpc.handle_get_account_info(params).await
+        },
+    )?;
+    module.register_async_method(
+        "getMultipleAccounts",
+        |params, rpc| async move {
+            debug!("getMultipleAccounts {:?}", params);
+            rpc.handle_get_multiple_accounts(params).await
+        },
+    )?;
+    module.register_async_method(
+        "getLatestBlockhash",
+        |params, rpc| async move {
+            debug!("getLatestBlockhash {:?}", params);
+            rpc.handle_get_latest_blockhash(params).await
+        },
+    )?;
     Ok(())
 }

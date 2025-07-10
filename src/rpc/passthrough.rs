@@ -1,7 +1,3 @@
-use crate::{
-    mocker::SoxMocker,
-    responder::{response::response_with_context, ResponderRpc},
-};
 use jsonrpsee::{
     core::RegisterMethodError,
     types::{ErrorObjectOwned, Params},
@@ -11,11 +7,13 @@ use log::*;
 use serde::de::DeserializeOwned;
 use solana_account_decoder::parse_token::UiTokenAmount;
 use solana_rpc_client_api::response::{
-    OptionalContext, Response as RpcResponse, RpcAccountBalance, RpcBlockCommitment,
-    RpcBlockProduction, RpcConfirmedTransactionStatusWithSignature, RpcContactInfo,
-    RpcIdentity, RpcInflationGovernor, RpcInflationRate, RpcInflationReward, RpcKeyedAccount,
-    RpcLeaderSchedule, RpcPerfSample, RpcPrioritizationFee, RpcSimulateTransactionResult,
-    RpcSnapshotSlotInfo, RpcSupply, RpcTokenAccountBalance, RpcVersionInfo, RpcVoteAccountStatus,
+    OptionalContext, Response as RpcResponse, RpcAccountBalance,
+    RpcBlockCommitment, RpcBlockProduction,
+    RpcConfirmedTransactionStatusWithSignature, RpcContactInfo, RpcIdentity,
+    RpcInflationGovernor, RpcInflationRate, RpcInflationReward,
+    RpcKeyedAccount, RpcLeaderSchedule, RpcPerfSample, RpcPrioritizationFee,
+    RpcSimulateTransactionResult, RpcSnapshotSlotInfo, RpcSupply,
+    RpcTokenAccountBalance, RpcVersionInfo, RpcVoteAccountStatus,
 };
 use solana_sdk::{
     clock::{Slot, UnixTimestamp},
@@ -23,6 +21,11 @@ use solana_sdk::{
     epoch_schedule::EpochSchedule,
 };
 use solana_transaction_status::UiConfirmedBlock;
+
+use crate::{
+    mocker::SoxMocker,
+    responder::{response::response_with_context, ResponderRpc},
+};
 
 // -----------------
 // Solana Types
@@ -45,19 +48,33 @@ pub fn register_passthrough_methods<M: SoxMocker>(
 ) -> Result<(), RegisterMethodError> {
     macro_rules! passthrough {
         ($method:literal, $return_type:ty) => {
-            module.register_async_method($method, |params, rpc| async move {
-                debug!("{}", $method);
-                trace!("{:#?}", params);
-                passthrough_impl::<M, $return_type>($method, params, &rpc, None).await
-            })?;
+            module.register_async_method(
+                $method,
+                |params, rpc| async move {
+                    debug!("{}", $method);
+                    trace!("{:#?}", params);
+                    passthrough_impl::<M, $return_type>(
+                        $method, params, &rpc, None,
+                    )
+                    .await
+                },
+            )?;
         };
         ($method:literal, $return_type:ty, $default_value:expr) => {
-            module.register_async_method($method, |params, rpc| async move {
-                debug!("{}", $method);
-                trace!("{:#?}", params);
-                passthrough_impl::<M, $return_type>($method, params, &rpc, Some($default_value))
+            module.register_async_method(
+                $method,
+                |params, rpc| async move {
+                    debug!("{}", $method);
+                    trace!("{:#?}", params);
+                    passthrough_impl::<M, $return_type>(
+                        $method,
+                        params,
+                        &rpc,
+                        Some($default_value),
+                    )
                     .await
-            })?;
+                },
+            )?;
         };
     }
 

@@ -1,17 +1,20 @@
-use log::*;
-use solana_rpc_client::{nonblocking::rpc_client::RpcClient, rpc_client::SerializableTransaction};
-use solana_sdk::{
-    hash::Hash, message::VersionedMessage, pubkey::Pubkey, transaction::TransactionError,
-};
-use solana_transaction_status::{TransactionConfirmationStatus, TransactionStatus};
 use std::sync::{Arc, Mutex};
 
+use log::*;
+use solana_rpc_client::{
+    nonblocking::rpc_client::RpcClient, rpc_client::SerializableTransaction,
+};
 use solana_sdk::{
-    message::v0::Message,
+    hash::Hash,
+    message::{v0::Message, VersionedMessage},
+    pubkey::Pubkey,
     signature::{Keypair, Signature},
     signer::Signer,
     system_instruction, system_program,
-    transaction::VersionedTransaction,
+    transaction::{TransactionError, VersionedTransaction},
+};
+use solana_transaction_status::{
+    TransactionConfirmationStatus, TransactionStatus,
 };
 use sox::mocker::{SoxMocker, TransactionResult};
 
@@ -38,26 +41,44 @@ fn create_account_tx() -> VersionedTransaction {
         &system_program::ID,
     );
 
-    let versioned_msg = Message::try_compile(&auth.pubkey(), &[ix], &[], Hash::default()).unwrap();
+    let versioned_msg =
+        Message::try_compile(&auth.pubkey(), &[ix], &[], Hash::default())
+            .unwrap();
 
-    VersionedTransaction::try_new(VersionedMessage::V0(versioned_msg), &[&auth, &new_account])
-        .unwrap()
+    VersionedTransaction::try_new(
+        VersionedMessage::V0(versioned_msg),
+        &[&auth, &new_account],
+    )
+    .unwrap()
 }
 
 #[allow(dead_code)]
 fn transfer_tx() -> (Pubkey, VersionedTransaction) {
     let auth = Keypair::new();
     let recipient = Keypair::new();
-    let ix = system_instruction::transfer(&auth.pubkey(), &recipient.pubkey(), 1_000_000_000);
+    let ix = system_instruction::transfer(
+        &auth.pubkey(),
+        &recipient.pubkey(),
+        1_000_000_000,
+    );
 
-    let versioned_msg = Message::try_compile(&auth.pubkey(), &[ix], &[], Hash::default()).unwrap();
+    let versioned_msg =
+        Message::try_compile(&auth.pubkey(), &[ix], &[], Hash::default())
+            .unwrap();
     (
         auth.pubkey(),
-        VersionedTransaction::try_new(VersionedMessage::V0(versioned_msg), &[&auth]).unwrap(),
+        VersionedTransaction::try_new(
+            VersionedMessage::V0(versioned_msg),
+            &[&auth],
+        )
+        .unwrap(),
     )
 }
 
-async fn sig_status(rpc_client: &RpcClient, sig: Signature) -> Result<(), TransactionError> {
+async fn sig_status(
+    rpc_client: &RpcClient,
+    sig: Signature,
+) -> Result<(), TransactionError> {
     rpc_client
         .get_signature_status(&sig)
         .await
@@ -79,7 +100,10 @@ async fn sig_statuses(
 async fn test_one_tx_success() {
     struct AllTxsSuccessMocker;
     impl SoxMocker for AllTxsSuccessMocker {
-        fn handle_transaction(&self, tx: VersionedTransaction) -> Option<TransactionResult> {
+        fn handle_transaction(
+            &self,
+            tx: VersionedTransaction,
+        ) -> Option<TransactionResult> {
             debug!("Mocker received transaction: {:?}", tx);
             Some(TransactionResult::signature_status_success(
                 Signature::new_unique(),
@@ -109,7 +133,10 @@ async fn test_one_tx_success() {
 async fn test_two_tx_success() {
     struct AllTxsSuccessMocker;
     impl SoxMocker for AllTxsSuccessMocker {
-        fn handle_transaction(&self, tx: VersionedTransaction) -> Option<TransactionResult> {
+        fn handle_transaction(
+            &self,
+            tx: VersionedTransaction,
+        ) -> Option<TransactionResult> {
             debug!("Mocker received transaction: {:?}", tx);
             Some(TransactionResult::signature_status_success(
                 Signature::new_unique(),
@@ -147,7 +174,10 @@ async fn test_two_tx_success() {
 async fn test_one_tx_failure() {
     struct AllTxsFailureMocker;
     impl SoxMocker for AllTxsFailureMocker {
-        fn handle_transaction(&self, tx: VersionedTransaction) -> Option<TransactionResult> {
+        fn handle_transaction(
+            &self,
+            tx: VersionedTransaction,
+        ) -> Option<TransactionResult> {
             debug!("Mocker received transaction: {:?}", tx);
             Some(TransactionResult::signature_status_error(
                 Signature::new_unique(),
@@ -181,7 +211,10 @@ async fn test_one_tx_failure() {
 async fn test_two_tx_failure() {
     struct AllTxsFailureMocker;
     impl SoxMocker for AllTxsFailureMocker {
-        fn handle_transaction(&self, tx: VersionedTransaction) -> Option<TransactionResult> {
+        fn handle_transaction(
+            &self,
+            tx: VersionedTransaction,
+        ) -> Option<TransactionResult> {
             debug!("Mocker received transaction: {:?}", tx);
             Some(TransactionResult::signature_status_error(
                 Signature::new_unique(),
@@ -224,7 +257,10 @@ async fn test_failing_for_specific_payer() {
     }
 
     impl SoxMocker for FailForSpecificPayerMock {
-        fn handle_transaction(&self, tx: VersionedTransaction) -> Option<TransactionResult> {
+        fn handle_transaction(
+            &self,
+            tx: VersionedTransaction,
+        ) -> Option<TransactionResult> {
             debug!("Mocker received transaction: {:?}", tx);
             if tx.message.static_account_keys().contains(&self.payer) {
                 Some(TransactionResult::signature_status_error(
@@ -267,7 +303,10 @@ async fn test_two_tx_first_one_dropped_second_fails_third_succeeds() {
         count: Mutex<u8>,
     }
     impl SoxMocker for DropFailSucceedMocker {
-        fn handle_transaction(&self, tx: VersionedTransaction) -> Option<TransactionResult> {
+        fn handle_transaction(
+            &self,
+            tx: VersionedTransaction,
+        ) -> Option<TransactionResult> {
             let mut count = self.count.lock().unwrap();
             debug!("Mocker received transaction: {:?}", tx);
             match *count {
@@ -300,7 +339,8 @@ async fn test_two_tx_first_one_dropped_second_fails_third_succeeds() {
     let rpc_client = utils::create_rpc_client(&url);
 
     let dropped_tx = create_account_tx();
-    let res_dropped = rpc_client.send_and_confirm_transaction(&dropped_tx).await;
+    let res_dropped =
+        rpc_client.send_and_confirm_transaction(&dropped_tx).await;
     assert!(res_dropped.is_err());
     assert!(res_dropped
         .unwrap_err()
@@ -312,14 +352,17 @@ async fn test_two_tx_first_one_dropped_second_fails_third_succeeds() {
     assert!(res_failed.is_err());
 
     let success_tx = create_account_tx();
-    let res_success = rpc_client.send_and_confirm_transaction(&success_tx).await;
+    let res_success =
+        rpc_client.send_and_confirm_transaction(&success_tx).await;
     assert!(res_success.is_ok());
 
     let sig_dropped = dropped_tx.get_signature();
     let sig_failed = failed_tx.get_signature();
     let sig_success = success_tx.get_signature();
 
-    let statuses = sig_statuses(&rpc_client, &[*sig_dropped, *sig_failed, *sig_success]).await;
+    let statuses =
+        sig_statuses(&rpc_client, &[*sig_dropped, *sig_failed, *sig_success])
+            .await;
 
     assert_eq!(statuses.len(), 3);
     assert!(statuses[0].is_none());

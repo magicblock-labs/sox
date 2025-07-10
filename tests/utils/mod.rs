@@ -3,7 +3,10 @@ use std::sync::Arc;
 use log::*;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::commitment_config::CommitmentConfig;
-use sox::{mocker::SoxMocker, start_rpc_server, ResponderConfig, ResponderRpcResult, ServerHandle};
+use sox::{
+    mocker::SoxMocker, start_rpc_server, ResponderConfig, ResponderRpcResult,
+    ServerHandle,
+};
 
 fn init_logger() {
     let _ = env_logger::builder()
@@ -12,7 +15,9 @@ fn init_logger() {
         .try_init();
 }
 
-pub async fn start<M: SoxMocker>(mocker: Arc<M>) -> ResponderRpcResult<(String, ServerHandle)> {
+pub async fn start<M: SoxMocker>(
+    mocker: Arc<M>,
+) -> ResponderRpcResult<(String, ServerHandle)> {
     start_with_config(mocker, ResponderConfig::noproxy()).await
 }
 
@@ -43,5 +48,8 @@ pub async fn stop(handle: ServerHandle) {
 }
 
 pub(crate) fn create_rpc_client(url: &str) -> RpcClient {
-    RpcClient::new_with_commitment(format!("http://{url}"), CommitmentConfig::processed())
+    RpcClient::new_with_commitment(
+        format!("http://{url}"),
+        CommitmentConfig::processed(),
+    )
 }

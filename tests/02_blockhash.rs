@@ -1,6 +1,6 @@
-use log::*;
 use std::sync::Arc;
 
+use log::*;
 use solana_rpc_client_api::response::RpcBlockhash;
 use solana_sdk::{commitment_config::CommitmentConfig, hash::Hash};
 use sox::mocker::{SoxMocker, SoxPassThrough};
@@ -88,9 +88,10 @@ async fn test_get_latest_blockhash_mocked() {
 #[tokio::test]
 async fn test_get_latest_blockhash_fallback_to_proxy() {
     let mocker = Arc::new(SoxPassThrough);
-    let (url, handle) = utils::start_with_config(mocker, sox::ResponderConfig::development())
-        .await
-        .unwrap();
+    let (url, handle) =
+        utils::start_with_config(mocker, sox::ResponderConfig::development())
+            .await
+            .unwrap();
     let rpc_client = utils::create_rpc_client(&url);
 
     let result = rpc_client
@@ -119,9 +120,10 @@ async fn test_get_latest_blockhash_fallback_to_proxy() {
 #[tokio::test]
 async fn test_is_blockhash_valid_fallback_to_proxy() {
     let mocker = Arc::new(SoxPassThrough);
-    let (url, handle) = utils::start_with_config(mocker, sox::ResponderConfig::development())
-        .await
-        .unwrap();
+    let (url, handle) =
+        utils::start_with_config(mocker, sox::ResponderConfig::development())
+            .await
+            .unwrap();
     let rpc_client = utils::create_rpc_client(&url);
 
     let (blockhash, _) = rpc_client
@@ -166,9 +168,10 @@ async fn test_is_blockhash_valid_mixed_mock_and_proxy() {
     }
 
     let mocker = Arc::new(MixedBlockhashMocker { invalid_blockhash });
-    let (url, handle) = utils::start_with_config(mocker, sox::ResponderConfig::development())
-        .await
-        .unwrap();
+    let (url, handle) =
+        utils::start_with_config(mocker, sox::ResponderConfig::development())
+            .await
+            .unwrap();
     let rpc_client = utils::create_rpc_client(&url);
 
     // Test 1: The specific mocked hash should return false

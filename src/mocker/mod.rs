@@ -1,12 +1,15 @@
-use solana_rpc_client_api::config::RpcAccountInfoConfig;
-use solana_rpc_client_api::response::{RpcBlockhash, RpcSimulateTransactionResult};
-use solana_sdk::account::Account;
+use solana_rpc_client_api::{
+    config::RpcAccountInfoConfig,
+    response::{RpcBlockhash, RpcSimulateTransactionResult},
+};
 use solana_sdk::{
+    account::Account,
     signature::Signature,
     transaction::{TransactionError, VersionedTransaction},
 };
 use solana_transaction_status::{
-    ConfirmedTransactionStatusWithSignature, TransactionConfirmationStatus, TransactionStatus,
+    ConfirmedTransactionStatusWithSignature, TransactionConfirmationStatus,
+    TransactionStatus,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,23 +24,30 @@ pub enum TransactionResult {
 
 impl TransactionResult {
     pub fn signature_status_success(signature: Signature) -> Self {
-        TransactionResult::SignatureStatus(ConfirmedTransactionStatusWithSignature {
-            signature,
-            slot: 0,
-            err: None,
-            memo: None,
-            block_time: None,
-        })
+        TransactionResult::SignatureStatus(
+            ConfirmedTransactionStatusWithSignature {
+                signature,
+                slot: 0,
+                err: None,
+                memo: None,
+                block_time: None,
+            },
+        )
     }
 
-    pub fn signature_status_error(signature: Signature, err: TransactionError) -> Self {
-        TransactionResult::SignatureStatus(ConfirmedTransactionStatusWithSignature {
-            signature,
-            slot: 0,
-            err: Some(err),
-            memo: None,
-            block_time: None,
-        })
+    pub fn signature_status_error(
+        signature: Signature,
+        err: TransactionError,
+    ) -> Self {
+        TransactionResult::SignatureStatus(
+            ConfirmedTransactionStatusWithSignature {
+                signature,
+                slot: 0,
+                err: Some(err),
+                memo: None,
+                block_time: None,
+            },
+        )
     }
 }
 
@@ -55,14 +65,19 @@ impl From<TransactionResult> for Option<TransactionStatus> {
                     Ok(())
                 },
                 err: status.err,
-                confirmation_status: Some(TransactionConfirmationStatus::Finalized),
+                confirmation_status: Some(
+                    TransactionConfirmationStatus::Finalized,
+                ),
             }),
         }
     }
 }
 
 pub trait SoxMocker: Send + Sync + 'static {
-    fn handle_transaction(&self, _tx: VersionedTransaction) -> Option<TransactionResult> {
+    fn handle_transaction(
+        &self,
+        _tx: VersionedTransaction,
+    ) -> Option<TransactionResult> {
         // By default we pass the transaction to the proxied validator
         None
     }
