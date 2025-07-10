@@ -146,6 +146,7 @@ impl<M: SoxMocker> ResponderRpc<M> {
             todo!("Send transaction to remote cluster if not mocked");
         }
     }
+
     pub async fn handle_get_signature_statuses(
         &self,
         params: jsonrpsee::types::Params<'static>,

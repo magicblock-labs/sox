@@ -9,7 +9,11 @@ use solana_transaction_status::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionResult {
+    /// The RPC does not handle the transaction (dropping it).
+    Drop,
+    /// A simulation error occurred.
     SimulationError(RpcSimulateTransactionResult),
+    /// A transaction was handled with a valid result.
     SignatureStatus(ConfirmedTransactionStatusWithSignature),
 }
 
@@ -39,7 +43,7 @@ impl From<TransactionResult> for Option<TransactionStatus> {
     fn from(value: TransactionResult) -> Option<TransactionStatus> {
         use TransactionResult::*;
         match value {
-            SimulationError(_) => None,
+            Drop | SimulationError(_) => None,
             SignatureStatus(status) => Some(TransactionStatus {
                 slot: status.slot,
                 confirmations: None,

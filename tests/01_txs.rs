@@ -4,7 +4,7 @@ use solana_sdk::{
     hash::Hash, message::VersionedMessage, pubkey::Pubkey, transaction::TransactionError,
 };
 use solana_transaction_status::{TransactionConfirmationStatus, TransactionStatus};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use solana_sdk::{
     message::v0::Message,
@@ -213,7 +213,7 @@ async fn test_two_tx_failure() {
 }
 
 // -----------------
-// Mixed Success/Failure Mocks
+// Mixed Success/Failure/Drop Mocks
 // -----------------
 #[tokio::test]
 async fn test_failing_for_specific_payer() {
@@ -253,6 +253,68 @@ async fn test_failing_for_specific_payer() {
     let statuses = sig_statuses(&rpc_client, &[sig]).await;
     assert_eq!(statuses.len(), 1);
     assert!(statuses[0].as_ref().unwrap().err.is_some());
+
+    utils::stop(handle).await;
+}
+
+#[tokio::test]
+async fn test_two_tx_first_one_dropped_second_fails_third_succeeds() {
+    struct DropFailSucceedMocker {
+        count: Mutex<u8>,
+    }
+    impl SoxMocker for DropFailSucceedMocker {
+        fn handle_transaction(&self, tx: VersionedTransaction) -> Option<TransactionResult> {
+            let mut count = self.count.lock().unwrap();
+            debug!("Mocker received transaction: {:?}", tx);
+            match *count {
+                0 => {
+                    *count += 1;
+                    Some(TransactionResult::Drop)
+                }
+                1 => {
+                    *count += 1;
+                    Some(TransactionResult::signature_status_error(
+                        Signature::new_unique(),
+                        TransactionError::AccountInUse,
+                    ))
+                }
+                _ => Some(TransactionResult::signature_status_success(
+                    Signature::new_unique(),
+                )),
+            }
+        }
+    }
+
+    let mocker = Arc::new(DropFailSucceedMocker {
+        count: Mutex::new(0),
+    });
+
+    let (url, handle) = utils::start(mocker).await.unwrap();
+    let rpc_client = utils::create_rpc_client(&url);
+
+    let dropped_tx = create_account_tx();
+    let res_dropped = rpc_client.send_and_confirm_transaction(&dropped_tx).await;
+    eprintln!("Dropped transaction result: {:?}", res_dropped);
+    assert!(res_dropped.is_err());
+
+    let failed_tx = create_account_tx();
+    let res_failed = rpc_client.send_and_confirm_transaction(&failed_tx).await;
+    assert!(res_failed.is_err());
+
+    let success_tx = create_account_tx();
+    let res_success = rpc_client.send_and_confirm_transaction(&success_tx).await;
+    assert!(res_success.is_ok());
+
+    let sig_dropped = dropped_tx.get_signature();
+    let sig_failed = failed_tx.get_signature();
+    let sig_success = success_tx.get_signature();
+
+    let statuses = sig_statuses(&rpc_client, &[*sig_dropped, *sig_failed, *sig_success]).await;
+
+    assert_eq!(statuses.len(), 3);
+    assert!(statuses[0].is_none());
+    assert!(statuses[1].as_ref().unwrap().err.is_some());
+    assert_eq!(statuses[2], successful_transaction_status());
 
     utils::stop(handle).await;
 }
