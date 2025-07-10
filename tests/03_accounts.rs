@@ -4,7 +4,7 @@ use solana_rpc_client_api::config::RpcAccountInfoConfig;
 use solana_sdk::{
     account::Account, commitment_config::CommitmentConfig, pubkey::Pubkey, system_program,
 };
-use sox::mocker::SoxMocker;
+use sox::mocker::{SoxMocker, SoxPassThrough};
 
 mod utils;
 
@@ -155,6 +155,44 @@ async fn test_get_multiple_accounts_mixed() {
     let account2 = accounts[2].as_ref().unwrap();
     assert_eq!(account2.lamports, mocked_account2.lamports);
     assert_eq!(account2.owner, mocked_account2.owner);
+
+    utils::stop(handle).await;
+}
+
+#[tokio::test]
+async fn test_get_account_info_fallback_to_proxy() {
+    let mocker = Arc::new(SoxPassThrough);
+    let (url, handle) = utils::start_with_config(mocker, sox::ResponderConfig::development())
+        .await
+        .unwrap();
+    let rpc_client = utils::create_rpc_client(&url);
+
+    // Use a well-known system program account that should exist on development
+    let system_program_pubkey = system_program::id();
+
+    // This should work by falling back to the remote proxy
+    let result = rpc_client
+        .get_account_with_commitment(&system_program_pubkey, CommitmentConfig::processed())
+        .await;
+
+    // Should succeed (not panic or return an error about no proxy)
+    assert!(
+        result.is_ok(),
+        "getAccountInfo should fall back to proxy when mock returns None"
+    );
+
+    let account_response = result.unwrap();
+    // System program account should exist on development cluster
+    assert!(
+        account_response.value.is_some(),
+        "System program account should exist on development"
+    );
+
+    let account = account_response.value.unwrap();
+    // System program should be executable
+    assert!(account.executable, "System program should be executable");
+    // System program should be owned by the Native Loader
+    assert_eq!(account.owner, solana_sdk::native_loader::id());
 
     utils::stop(handle).await;
 }

@@ -166,7 +166,7 @@ async fn test_is_blockhash_valid_mixed_mock_and_proxy() {
     }
 
     let mocker = Arc::new(MixedBlockhashMocker { invalid_blockhash });
-    let (url, handle) = utils::start_with_config(mocker, sox::ResponderConfig::devnet())
+    let (url, handle) = utils::start_with_config(mocker, sox::ResponderConfig::development())
         .await
         .unwrap();
     let rpc_client = utils::create_rpc_client(&url);
@@ -193,7 +193,7 @@ async fn test_is_blockhash_valid_mixed_mock_and_proxy() {
 
     assert!(
         result,
-        "Real blockhash from devnet should be valid via proxy fallback"
+        "Real blockhash from development should be valid via proxy fallback"
     );
 
     utils::stop(handle).await;
