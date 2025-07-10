@@ -13,10 +13,15 @@ fn init_logger() {
 }
 
 pub async fn start<M: SoxMocker>(mocker: Arc<M>) -> ResponderRpcResult<(String, ServerHandle)> {
+    start_with_config(mocker, ResponderConfig::noproxy()).await
+}
+
+pub async fn start_with_config<M: SoxMocker>(
+    mocker: Arc<M>,
+    config: ResponderConfig,
+) -> ResponderRpcResult<(String, ServerHandle)> {
     init_logger();
 
-    let config = ResponderConfig::noproxy();
-    // random u16 port
     let port = rand::random::<u16>() % 10000 + 20000; // Port range 20000-29999
     match start_rpc_server(mocker, config, Some(port)).await {
         Ok((url, handle)) => {

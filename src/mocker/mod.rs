@@ -85,8 +85,7 @@ pub trait SoxMocker: Send + Sync + 'static {
         // By default we pass the request to the proxied validator
         None
     }
-
 }
 
-pub struct NoOpSoxMocker;
-impl SoxMocker for NoOpSoxMocker {}
+pub struct SoxPassThrough;
+impl SoxMocker for SoxPassThrough {}
