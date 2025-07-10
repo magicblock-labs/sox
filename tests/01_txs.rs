@@ -380,7 +380,7 @@ async fn test_mixed_transaction_handling_with_proxy_fallback() {
     let transfer_amount = 1_000_000;
 
     // Create a direct RPC client to development cluster for setup and verification
-    let dev_rpc_client = RpcClient::new("http://127.0.0.1:7799".to_string());
+    let dev_rpc_client = utils::create_development_rpc_client();
 
     // Request airdrop to source account on development cluster
     debug!("Requesting airdrop to source account...");
