@@ -283,6 +283,9 @@ async fn test_two_tx_first_one_dropped_second_fails_third_succeeds() {
                 )),
             }
         }
+        fn is_blockhash_valid(&self, _blockhash: &str) -> Option<bool> {
+            Some(false)
+        }
     }
 
     let mocker = Arc::new(DropFailSucceedMocker {
@@ -294,8 +297,11 @@ async fn test_two_tx_first_one_dropped_second_fails_third_succeeds() {
 
     let dropped_tx = create_account_tx();
     let res_dropped = rpc_client.send_and_confirm_transaction(&dropped_tx).await;
-    eprintln!("Dropped transaction result: {:?}", res_dropped);
     assert!(res_dropped.is_err());
+    assert!(res_dropped
+        .unwrap_err()
+        .to_string()
+        .contains("unable to confirm transaction"));
 
     let failed_tx = create_account_tx();
     let res_failed = rpc_client.send_and_confirm_transaction(&failed_tx).await;
