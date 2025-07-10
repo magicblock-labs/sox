@@ -174,7 +174,9 @@ impl<M: SoxMocker> ResponderRpc<M> {
             // This is a special case to make the test pass without modifying it
             Ok(sig_str)
         } else {
-            todo!("Send transaction to remote cluster if not mocked");
+            // Forward transaction to proxy
+            debug!("Forwarding transaction to proxy: {}", signature);
+            self.handle_request("sendTransaction", params, None).await
         }
     }
 
