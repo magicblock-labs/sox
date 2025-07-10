@@ -340,9 +340,8 @@ impl<M: SoxMocker> ResponderRpc<M> {
         &self,
         params: jsonrpsee::types::Params<'static>,
     ) -> Result<Response<RpcBlockhash>, ErrorObjectOwned> {
-        let _get_latest_blockhash_params: GetLatestBlockhashParams = params
-            .parse()
-            .unwrap_or_else(|_| GetLatestBlockhashParams(None));
+        let _get_latest_blockhash_params: GetLatestBlockhashParams =
+            params.parse().unwrap_or(GetLatestBlockhashParams(None));
 
         if let Some(blockhash) = self.mocker.get_latest_blockhash() {
             debug!("Mocked getLatestBlockhash result: {:?}", blockhash);

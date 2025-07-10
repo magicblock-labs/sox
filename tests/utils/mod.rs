@@ -54,6 +54,7 @@ pub(crate) fn create_rpc_client(url: &str) -> RpcClient {
     )
 }
 
+#[allow(unused)]
 pub(crate) fn create_development_rpc_client() -> RpcClient {
     RpcClient::new("http://localhost:7799".to_string())
 }
