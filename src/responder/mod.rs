@@ -1,6 +1,6 @@
 use crate::mocker::TransactionResult;
 use crate::rpc::params::{
-    GetAccountInfoParams, GetMultipleAccountsParams, GetSignatureStatusesParams,
+    GetAccountInfoParams, GetLatestBlockhashParams, GetMultipleAccountsParams, GetSignatureStatusesParams,
     IsBlockhashValidParams,
 };
 use convert::into_account_info;
@@ -8,7 +8,7 @@ use log::*;
 use response::response_with_context;
 use solana_account_decoder::UiAccount;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use solana_rpc_client_api::response::Response;
+use solana_rpc_client_api::response::{Response, RpcBlockhash};
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
 use solana_transaction_status::TransactionStatus;
@@ -308,6 +308,20 @@ impl<M: SoxMocker> ResponderRpc<M> {
             );
         }
         Ok(response_with_context(mocked_accounts))
+    }
+
+    pub async fn handle_get_latest_blockhash(
+        &self,
+        params: jsonrpsee::types::Params<'static>,
+    ) -> Result<Response<RpcBlockhash>, ErrorObjectOwned> {
+        let _get_latest_blockhash_params: GetLatestBlockhashParams = params.parse().unwrap_or_else(|_| GetLatestBlockhashParams(None));
+        
+        if let Some(blockhash) = self.mocker.get_latest_blockhash() {
+            debug!("Mocked getLatestBlockhash result: {:?}", blockhash);
+            Ok(response_with_context(blockhash))
+        } else {
+            self.handle_request("getLatestBlockhash", params, None).await
+        }
     }
 
     pub async fn handle_request<R: DeserializeOwned>(

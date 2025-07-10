@@ -26,5 +26,9 @@ pub fn register_mockable_methods<M: SoxMocker>(
         debug!("getMultipleAccounts {:?}", params);
         rpc.handle_get_multiple_accounts(params).await
     })?;
+    module.register_async_method("getLatestBlockhash", |params, rpc| async move {
+        debug!("getLatestBlockhash {:?}", params);
+        rpc.handle_get_latest_blockhash(params).await
+    })?;
     Ok(())
 }

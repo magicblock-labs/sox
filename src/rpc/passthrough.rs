@@ -12,7 +12,7 @@ use serde::de::DeserializeOwned;
 use solana_account_decoder::parse_token::UiTokenAmount;
 use solana_rpc_client_api::response::{
     OptionalContext, Response as RpcResponse, RpcAccountBalance, RpcBlockCommitment,
-    RpcBlockProduction, RpcBlockhash, RpcConfirmedTransactionStatusWithSignature, RpcContactInfo,
+    RpcBlockProduction, RpcConfirmedTransactionStatusWithSignature, RpcContactInfo,
     RpcIdentity, RpcInflationGovernor, RpcInflationRate, RpcInflationReward, RpcKeyedAccount,
     RpcLeaderSchedule, RpcPerfSample, RpcPrioritizationFee, RpcSimulateTransactionResult,
     RpcSnapshotSlotInfo, RpcSupply, RpcTokenAccountBalance, RpcVersionInfo, RpcVoteAccountStatus,
@@ -85,7 +85,6 @@ pub fn register_passthrough_methods<M: SoxMocker>(
     passthrough!("getInflationRate", RpcInflationRate);
     passthrough!("getInflationReward", Vec<Option<RpcInflationReward>>);
     passthrough!("getLargestAccounts", RpcResponse<Vec<RpcAccountBalance>>);
-    passthrough!("getLatestBlockhash", RpcResponse<RpcBlockhash>);
     passthrough!("getLeaderSchedule", Option<RpcLeaderSchedule>);
     passthrough!("getMaxRetransmitSlot", Slot);
     passthrough!("getMaxShredInsertSlot", Slot);

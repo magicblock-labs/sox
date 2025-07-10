@@ -1,5 +1,5 @@
 use solana_rpc_client_api::config::RpcAccountInfoConfig;
-use solana_rpc_client_api::response::RpcSimulateTransactionResult;
+use solana_rpc_client_api::response::{RpcBlockhash, RpcSimulateTransactionResult};
 use solana_sdk::account::Account;
 use solana_sdk::{
     signature::Signature,
@@ -77,6 +77,11 @@ pub trait SoxMocker: Send + Sync + 'static {
         _pubkey: &str,
         _config: Option<RpcAccountInfoConfig>,
     ) -> Option<Option<Account>> {
+        // By default we pass the request to the proxied validator
+        None
+    }
+
+    fn get_latest_blockhash(&self) -> Option<RpcBlockhash> {
         // By default we pass the request to the proxied validator
         None
     }

@@ -80,3 +80,11 @@ pub struct GetMultipleAccountsParams(
     pub Vec<String>,
     #[serde(default)] pub Option<RpcAccountInfoConfig>,
 );
+
+// -----------------
+// GetLatestBlockhashParams
+// -----------------
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GetLatestBlockhashParams(
+    #[serde(default)] pub Option<CommmitmentAndContextSlotConfig>,
+);
