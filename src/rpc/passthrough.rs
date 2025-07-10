@@ -61,11 +61,6 @@ pub fn register_passthrough_methods<M: SoxMocker>(
         };
     }
 
-    passthrough!(
-        "getAccountInfo",
-        RpcResponse<Option<UiAccount>>,
-        response_with_context(None)
-    );
     passthrough!("getBalance", RpcResponse<u64>, response_with_context(0));
     passthrough!("getBlock", Option<UiConfirmedBlock>);
     passthrough!(

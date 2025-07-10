@@ -18,5 +18,9 @@ pub fn register_mockable_methods<M: SoxMocker>(
         debug!("isBlockhashValid {:?}", params);
         rpc.handle_is_blockhash_valid(params).await
     })?;
+    module.register_async_method("getAccountInfo", |params, rpc| async move {
+        debug!("getAccountInfo {:?}", params);
+        rpc.handle_get_account_info(params).await
+    })?;
     Ok(())
 }

@@ -1,5 +1,8 @@
 use crate::mocker::TransactionResult;
-use crate::rpc::params::{GetSignatureStatusesParams, IsBlockhashValidParams};
+use crate::rpc::params::{
+    GetAccountInfoParams, GetSignatureStatusesParams, IsBlockhashValidParams,
+};
+use solana_account_decoder::UiAccount;
 use log::*;
 use response::response_with_context;
 use solana_rpc_client_api::response::Response;
@@ -186,6 +189,27 @@ impl<M: SoxMocker> ResponderRpc<M> {
             Ok(response_with_context(is_valid))
         } else {
             self.handle_request("isBlockhashValid", params, None).await
+        }
+    }
+
+    pub async fn handle_get_account_info(
+        &self,
+        params: jsonrpsee::types::Params<'static>,
+    ) -> Result<Response<Option<UiAccount>>, ErrorObjectOwned> {
+        let get_account_info_params: GetAccountInfoParams = params.parse().unwrap();
+        let pubkey = get_account_info_params.0;
+        let config = get_account_info_params.1;
+
+        if let Some(account_info) = self.mocker.get_account_info(&pubkey, config) {
+            debug!("Mocked getAccountInfo result: {:?}", account_info);
+            Ok(response_with_context(account_info))
+        } else {
+            self.handle_request(
+                "getAccountInfo",
+                params,
+                Some(response_with_context(None)),
+            )
+            .await
         }
     }
 

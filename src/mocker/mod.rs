@@ -1,3 +1,5 @@
+use solana_account_decoder::UiAccount;
+use solana_rpc_client_api::config::RpcAccountInfoConfig;
 use solana_rpc_client_api::response::RpcSimulateTransactionResult;
 use solana_sdk::{
     signature::Signature,
@@ -66,6 +68,15 @@ pub trait SoxMocker: Send + Sync + 'static {
     }
 
     fn is_blockhash_valid(&self, _blockhash: &str) -> Option<bool> {
+        // By default we pass the request to the proxied validator
+        None
+    }
+
+    fn get_account_info(
+        &self,
+        _pubkey: &str,
+        _config: Option<RpcAccountInfoConfig>,
+    ) -> Option<Option<UiAccount>> {
         // By default we pass the request to the proxied validator
         None
     }

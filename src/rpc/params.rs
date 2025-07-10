@@ -3,7 +3,9 @@ use jsonrpsee::{
     types::Params,
 };
 use serde::{Deserialize, Serialize};
-use solana_rpc_client_api::config::{RpcSendTransactionConfig, RpcSignatureStatusConfig};
+use solana_rpc_client_api::config::{
+    RpcAccountInfoConfig, RpcSendTransactionConfig, RpcSignatureStatusConfig,
+};
 
 // -----------------
 // RawParams
@@ -59,4 +61,13 @@ pub struct CommmitmentAndContextSlotConfig {
 pub struct IsBlockhashValidParams(
     pub String,
     #[serde(default)] pub Option<CommmitmentAndContextSlotConfig>,
+);
+
+// -----------------
+// GetAccountInfoParams
+// -----------------
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GetAccountInfoParams(
+    pub String,
+    #[serde(default)] pub Option<RpcAccountInfoConfig>,
 );
