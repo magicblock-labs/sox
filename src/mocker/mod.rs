@@ -64,6 +64,11 @@ pub trait SoxMocker: Send + Sync + 'static {
         // By default we pass the transaction to the proxied validator
         None
     }
+
+    fn is_blockhash_valid(&self, _blockhash: &str) -> Option<bool> {
+        // By default we pass the request to the proxied validator
+        None
+    }
 }
 
 pub struct NoOpSoxMocker;

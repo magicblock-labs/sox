@@ -14,5 +14,9 @@ pub fn register_mockable_methods<M: SoxMocker>(
         debug!("getSignatureStatuses {:?}", params);
         rpc.handle_get_signature_statuses(params).await
     })?;
+    module.register_async_method("isBlockhashValid", |params, rpc| async move {
+        debug!("isBlockhashValid {:?}", params);
+        rpc.handle_is_blockhash_valid(params).await
+    })?;
     Ok(())
 }

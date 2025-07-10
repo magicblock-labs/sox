@@ -122,7 +122,6 @@ pub fn register_passthrough_methods<M: SoxMocker>(
     passthrough!("getTransactionCount", u64);
     passthrough!("getVersion", RpcVersionInfo);
     passthrough!("getVoteAccounts", RpcVoteAccountStatus);
-    passthrough!("isBlockhashValid", RpcResponse<bool>);
     passthrough!("minimumLedgerSlot", Slot);
     passthrough!("requestAirdrop", String);
     passthrough!(

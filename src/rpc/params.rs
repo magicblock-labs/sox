@@ -46,3 +46,17 @@ pub struct GetSignatureStatusesParams(
     pub Vec<String>,
     #[serde(default)] pub Option<RpcSignatureStatusConfig>,
 );
+
+// -----------------
+// IsBlockhashValidParams
+// -----------------
+#[derive(Debug, Deserialize, Serialize)]
+pub struct CommmitmentAndContextSlotConfig {
+    pub commitment: Option<String>,
+    pub context_slot: Option<u64>,
+}
+#[derive(Debug, Deserialize, Serialize)]
+pub struct IsBlockhashValidParams(
+    pub String,
+    #[serde(default)] pub Option<CommmitmentAndContextSlotConfig>,
+);

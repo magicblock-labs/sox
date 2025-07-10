@@ -1,5 +1,5 @@
 use crate::mocker::TransactionResult;
-use crate::rpc::params::GetSignatureStatusesParams;
+use crate::rpc::params::{GetSignatureStatusesParams, IsBlockhashValidParams};
 use log::*;
 use response::response_with_context;
 use solana_rpc_client_api::response::Response;
@@ -173,6 +173,20 @@ impl<M: SoxMocker> ResponderRpc<M> {
             .collect();
         debug!("Returning signature statuses: {:?}", statuses);
         Ok(response_with_context(statuses))
+    }
+
+    pub async fn handle_is_blockhash_valid(
+        &self,
+        params: jsonrpsee::types::Params<'static>,
+    ) -> Result<Response<bool>, ErrorObjectOwned> {
+        let is_blockhash_valid_params: IsBlockhashValidParams = params.parse().unwrap();
+        let blockhash = is_blockhash_valid_params.0;
+        if let Some(is_valid) = self.mocker.is_blockhash_valid(&blockhash) {
+            debug!("Mocked isBlockhashValid result: {:?}", is_valid);
+            Ok(response_with_context(is_valid))
+        } else {
+            self.handle_request("isBlockhashValid", params, None).await
+        }
     }
 
     pub async fn handle_request<R: DeserializeOwned>(
